@@ -2,7 +2,7 @@ from aio_pika import ExchangeType, connect_robust,Message
 from aio_pika.abc import AbstractQueue,AbstractExchange
 from shared.logger import get_logger
 import os
-
+import asyncio
 import json
 
 
@@ -22,10 +22,10 @@ class BrokerClient:
         self.prefetch_count = prefetch_count
         self.connection = await connect_robust(self.rabbitmq_url)
         self.connection.reconnect_callbacks.add(self._on_reconnect,)
+        logger.info("Rabbitmq connection success")
         self.channel = await self.connection.channel()
         await self.channel.set_qos(self.prefetch_count)
         await self.setup_exchanges()
-        logger.info("Rabbitmq connection success")
             
     async def setup_exchanges(self):
         """Declare the exchanges required"""
@@ -98,3 +98,12 @@ class BrokerClient:
         if self.connection and not self.connection.is_closed:
             await self.connection.close()
 
+async def test_connection():
+    broker = BrokerClient()
+    await broker.connect(prefetch_count=2)
+    await broker.get_configured_queue("work.tasks","task.#", "scanner-queue")
+    await broker.publish("work.tasks", "task.image", {"job_id": 23456})
+
+
+if __name__ == "__main__":
+    asyncio.run(test_connection())
