@@ -1,6 +1,6 @@
-# Malware Scanning Pipeline
+# FiloJ
 
-A production-ready, event-driven distributed system to process file uploads asynchronously. This monorepo demonstrates a high-performance, decoupled architecture that separates ingestion, security scanning, and auditing into containerized microservices.
+An event-driven distributed system to process file uploads asynchronously. This monorepo demonstrates a high-performance, decoupled architecture that separates ingestion, security scanning, and auditing into containerized microservices.
 
 ## Overview
 
