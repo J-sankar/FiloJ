@@ -12,3 +12,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  minio:
+    image: quay.io/minio/minio:latest
+    environment:
+      - MINIO_ROOT_USER=admin        # This is your Access Key
+      - MINIO_ROOT_PASSWORD=password123 # This is your Secret Key
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"

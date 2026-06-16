@@ -4,6 +4,7 @@ version="0.1.0"
 requires-python = ">=3.11"
 dependencies= [
     "aio-pika>=9.6.2",
+    "aioboto3>=15.5.0",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
     "python-dotenv>=1.2.2",
@@ -11,3 +12,8 @@ dependencies= [
 ]
 [tool.setuptools.packages.find]
 where=["src"]
+
+[dependency-groups]
+dev = [
+    "types-aioboto3[s3]>=15.5.0",
+]
