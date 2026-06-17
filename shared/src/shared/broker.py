@@ -10,6 +10,7 @@ logger = get_logger(__name__)
 
 
 class BrokerClient:
+    """The message broker client for data transmission"""
     def __init__(self):
         self.rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
         self.connection = None
@@ -62,7 +63,7 @@ class BrokerClient:
             durable= True,
         )
         await queue.bind(exchange=exchange,routing_key=routing_key)
-        logger.info(f"queue {queue_name} setup and binds exchange {exchange_name}")
+        logger.info(f"queue {queue_name} setup and binds exchange {exchange_name} | routing key: {routing_key}")
         return queue
 
     async def _on_reconnect(self, connection):
