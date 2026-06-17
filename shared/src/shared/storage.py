@@ -113,7 +113,21 @@ class S3StorageAdapter:
                 raise e
 
                 
-
+    async def get_file_stream(self, file_key:str,chunk_size : int = 50 * 1024 * 1024) ->bytes :
+        async with self.session.client(
+            "s3",
+            region_name=self.region,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        ) as s3:
+            try:
+                res = await s3.get_object(Bucket=self.upload_bucket, Key=file_key)
+                async for chunk in res["Body"].iter_chunks(chunk_size=chunk_size):
+                    yield chunk
+            except Exception as e:
+                logger.error(f"ERROR: {str(e).lower()}")
+                raise e 
 
     async def delete_fileobj(self, file_key:str) -> None:
         """Delete file from uploads bucket"""
