@@ -5,7 +5,8 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
-    "shared"
+    "shared",
+    "python-multipart>=0.0.32",
 ]
 
 [tool.uv.sources]
