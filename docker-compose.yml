@@ -22,3 +22,14 @@ services:
       - "9000:9000"
       - "9001:9001"
     command: server /data --console-address ":9001"
+  
+
+  clamav:
+    image: clamav/clamav:latest
+    ports:
+    - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      retries: 3
+      start_period: 120s  
