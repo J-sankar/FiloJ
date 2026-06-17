@@ -16,7 +16,7 @@ AsyncSesssionLocal = sessionmaker(
     expire_on_commit=False
 )
 
-class Base(DeclarativeBase):
+class Base(MappedAsDataclass,DeclarativeBase):
     pass
 
 
