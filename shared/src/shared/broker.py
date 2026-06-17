@@ -41,6 +41,7 @@ class BrokerClient:
             type=ExchangeType.TOPIC,
             durable=True
         )
+        self.exchanges["dlx.exchange"] = await self.channel.declare_exchange("dlx.exchange", type="topic", durable=True)
         logger.debug(f"Exchange setup: Success | found exchanges = {len(self.exchanges)}")
 
 
@@ -61,6 +62,12 @@ class BrokerClient:
         queue = await self.channel.declare_queue(
             queue_name,
             durable= True,
+            arguments={
+                "x-queue-type": "quorum",
+                "x-dead-letter-exchange": "dlx.exchange", 
+                "x-dead-letter-routing-key": "failed.scan",
+                "x-delivery-limit": 3
+            }
         )
         await queue.bind(exchange=exchange,routing_key=routing_key)
         logger.info(f"queue {queue_name} setup and binds exchange {exchange_name} | routing key: {routing_key}")
