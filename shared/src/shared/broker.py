@@ -21,7 +21,7 @@ class BrokerClient:
     async def connect(self,prefetch_count: int = 1):
         """Connect with rabbitmq client,create a channel and setup exchanges"""
         self.prefetch_count = prefetch_count
-        self.connection = await connect_robust(self.rabbitmq_url)
+        self.connection = await connect_robust(self.rabbitmq_url,reconnect_interval=5,timeout=10,fail_fast = False)
         self.connection.reconnect_callbacks.add(self._on_reconnect,)
         logger.info("Rabbitmq connection success")
         self.channel = await self.connection.channel()
