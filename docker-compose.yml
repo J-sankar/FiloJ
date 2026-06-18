@@ -28,6 +28,8 @@ services:
     image: clamav/clamav:latest
     ports:
     - "3310:3310"
+    volumes:
+      - ./clamav/clamd.conf:/etc/clamav/clamd.conf
     healthcheck:
       test: ["CMD", "clamdcheck.sh"]
       interval: 60s
