@@ -9,7 +9,7 @@ dependencies = []
 [tool.uv.workspace]
 members = [
     "api",
-    "security-scanner",
+    "security_scanner",
     "logger",
     "image-processor",
     "shared"
