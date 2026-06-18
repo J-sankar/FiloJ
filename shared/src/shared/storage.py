@@ -3,6 +3,7 @@ import aioboto3
 import os
 from aiobotocore.config import AioConfig
 from botocore.exceptions import ClientError
+from typing import AsyncGenerator
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
@@ -113,7 +114,7 @@ class S3StorageAdapter:
                 raise e
 
                 
-    async def get_file_stream(self, file_key:str,chunk_size : int = 50 * 1024 * 1024) ->bytes :
+    async def get_file_stream(self, file_key:str,chunk_size : int = 50 * 1024 * 1024) ->AsyncGenerator[bytes, any] :
         async with self.session.client(
             "s3",
             region_name=self.region,

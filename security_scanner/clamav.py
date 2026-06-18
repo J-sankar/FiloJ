@@ -25,7 +25,7 @@ class ClamAVClient:
         wait=wait_exponential(multiplier=1, min=1, max=8),
         before_sleep=before_sleep_log(
             logger, 30
-        ),  # Auto-logs a warning before it sleeps/retries
+        ),  
         reraise=True,
     )
     async def connect(self, retries: int = 5, delay: int = 5):
