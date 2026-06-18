@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class ClamAVClient:
     def __init__(self):
         self.host = os.getenv("CLAMAV_HOST", "localhost")
-        self.port = os.getenv("CLAMAV_PORT", 3310)
+        self.port = int(os.getenv("CLAMAV_PORT", 3310))
         self.connection = None
 
     @retry(
