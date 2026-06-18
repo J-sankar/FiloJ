@@ -5,7 +5,8 @@ ALLOWED_FILES = {
     ".png":"image",
     ".jpeg":"image",
     ".ppt":"ppt",
-    ".mkv": "video"
+    ".mkv": "video",
+    ".txt": "text",
 }
 
 def get_file_type(filename:str) -> str:
