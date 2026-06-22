@@ -124,11 +124,8 @@ class S3StorageAdapter:
         ) as s3:
             try:
                 res = await s3.get_object(Bucket=self.upload_bucket, Key=file_key)
-                count = 1
                 async for chunk in res["Body"].iter_chunks(chunk_size=chunk_size):
-                    logger.debug(f"Passed chunk: {count}")
                     yield chunk
-                    count += 1
             except Exception as e:
                 logger.error(f"ERROR: {str(e).lower()}")
                 raise e 
