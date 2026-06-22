@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 
 
 class ClamAVClient:
+    """Clamav client for scanning files for threats and malwares"""
     def __init__(self):
         self.host = os.getenv("CLAMAV_HOST", "localhost")
         self.port = int(os.getenv("CLAMAV_PORT", 3310))
@@ -29,6 +30,7 @@ class ClamAVClient:
         reraise=True,
     )
     async def connect(self, retries: int = 5, delay: int = 5):
+        """Connect with clamav client"""
         try:
             self.connection = clamd.ClamdNetworkSocket(self.host, self.port, timeout=30)
             await asyncio.to_thread(self.connection.ping)
@@ -52,6 +54,8 @@ class ClamAVClient:
         reraise=True,  # If it fails 4 times, pass the error up to RabbitMQ
     )
     async def scan(self, spoolfile: SpooledTemporaryFile) -> dict:
+        """Scan for threats ans viruses in file, 
+        returns a dictionary of found threats if found"""
         try:
             if not self.connection:
                 raise RuntimeError("ClamAV not connected. Call connect() first.")
@@ -61,3 +65,13 @@ class ClamAVClient:
         except Exception as e:
             logger.error(f"Scan failed: {str(e).lower()}")
             raise e
+
+
+    async def disconnect(self) ->None:
+        """Safely Close Clamav Connection"""
+        try:
+            if self.connection:
+                await asyncio.to_thread(self.connection.clamd_socket.close)
+        except Exception as e:
+            logger.error(f"Disconnect failed: {str(e).lower()}")
+            
