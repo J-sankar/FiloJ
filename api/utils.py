@@ -1,13 +1,6 @@
 import pathlib
+from shared.config import ALLOWED_FILES
 
-ALLOWED_FILES = {
-    ".pdf":"pdf",
-    ".png":"image",
-    ".jpeg":"image",
-    ".ppt":"ppt",
-    ".mkv": "video",
-    ".txt": "text",
-}
 
 def get_file_type(filename:str) -> str:
     return pathlib.Path(filename).suffix.lower()
