@@ -71,6 +71,7 @@ async def upload_file(
                 "processing",
                 "completed",
                 "pending",
+                "clean"
             ):
                 logger.info("File hash exists in db")
                 return {
@@ -80,7 +81,7 @@ async def upload_file(
                 }
         await uploaded_file.seek(0)
         file_stream = uploaded_file.file
-        await storage.upload_file(file_key=file_key, file_stream=file_stream)
+        await storage.upload_file(file_key, file_stream,bucket=storage.upload_bucket)
         logger.info(f"File Uploaded to Storage | {filename}")
         async with db.begin_nested():
     
@@ -111,7 +112,7 @@ async def upload_file(
             "service": "api",
             "action": "file scheduled for scanning",
         }
-        await broker.publish("system.events", routing_key="", payload=new_log)
+        await broker.publish("system.events", routing_key="event.api.file_uploaded", payload=new_log)
         logger.info(
             f"Scan job scheduled | job: {str(new_job.id)[:8]} | file: {filename}"
         )
