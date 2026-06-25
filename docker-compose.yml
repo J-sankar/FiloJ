@@ -24,14 +24,22 @@ services:
     command: server /data --console-address ":9001"
   
 
+  
   clamav:
     image: clamav/clamav:latest
     ports:
-    - "3310:3310"
+      - "3310:3310"
     volumes:
       - ./clamav/clamd.conf:/etc/clamav/clamd.conf
+      - clamav_db:/var/lib/clamav   # also had an extra space before this
     healthcheck:
-      test: ["CMD", "clamdcheck.sh"]
-      interval: 60s
-      retries: 3
-      start_period: 120s  
+      test: ["CMD", "nc", "-z", "localhost", "3310"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+
+  
+volumes:          # top level, same indentation as services
+  clamav_db:
