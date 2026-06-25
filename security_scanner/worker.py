@@ -21,7 +21,7 @@ s3 = S3StorageAdapter()
 
 
 MAX_DELIVERY_COUNT = 3
-
+MAX_CHUNK_SIZE = 50*1024*1024
 
 @asynccontextmanager
 async def job_transaction(job_id: str):
@@ -29,7 +29,7 @@ async def job_transaction(job_id: str):
     async with AsyncSesssionLocal() as db:
         try:
             yield db
-        except ConnectionError as e:
+        except ConnectionError :
             job = await db.get(Job, uuid.UUID(job_id))
             if job:
                 job.status = "queued_for_retry"
@@ -98,7 +98,7 @@ async def scan_file(
                     broker, job_id, "event.scanner.scan_start", "security scan started"
                 )
                 logger.info(f"Job:{job_id[:8]} | Scan started")
-                with temp.SpooledTemporaryFile(max_size=50 * 1024 * 1024) as spoolfile:
+                with temp.SpooledTemporaryFile(max_size=MAX_CHUNK_SIZE) as spoolfile:
                     loop = asyncio.get_running_loop()
                     async for chunk in s3.get_file_stream(file_key=file_key):
                         await loop.run_in_executor(None, spoolfile.write, chunk)
@@ -124,9 +124,9 @@ async def scan_file(
                     job.result_data = scan_res
                     job.status = final_stat
                     await db.commit()
-                    if ALLOWED_FILES.get(filemetadata.type, None) == "image":
+                    if ALLOWED_FILES.get(filemetadata.type, None) == "image" and final_stat == "clean":
                         await broker.publish(
-                            "work.tasks", "task.image.process", data_decoded
+                            "work.tasks", "task.image.process", data
                         )
                         await _publish_audit(
                             broker,
@@ -135,6 +135,9 @@ async def scan_file(
                             "image submitted to processing",
                         )
                         logger.info(f"Job:{job_id[:8]} | Image scheduled for processing")
+                    else:
+                        job.status = "completed"
+                        await db.commit()
 
         except ConnectionError:
             await _publish_audit(
