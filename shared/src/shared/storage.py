@@ -3,7 +3,7 @@ import aioboto3
 import os
 from aiobotocore.config import AioConfig
 from botocore.exceptions import ClientError
-from typing import AsyncGenerator
+from typing  import Optional,BinaryIO,AsyncGenerator
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
@@ -18,12 +18,13 @@ class S3StorageAdapter:
         self.endpoint_url = os.getenv("S3_ENDPOINT", "http://localhost:9000")
         self.region = "us-east-1"
         self.upload_bucket = "uploads"
-
+        self.processed_bucket = "processed"
         self.quarantine_bucket = "quarantine"
+    
 
     async def setup_buckets(self):
         """Create or check if the buckets exists"""
-        buckets = [self.upload_bucket, self.quarantine_bucket]
+        buckets = [self.upload_bucket, self.quarantine_bucket,self.processed_bucket]
         async with self.session.client("s3",
             region_name=self.region,
             endpoint_url=self.endpoint_url,aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -42,7 +43,7 @@ class S3StorageAdapter:
                 logger.info(f"Bucket configured: {bucket}")
 
 
-    async def upload_file(self, file_key:str, file_stream) -> None:
+    async def upload_file(self, file_key:str, file_stream:BinaryIO,bucket:str,content_type: Optional[str] = None) -> None:
         """Upload a file stream to s3"""
         async with self.session.client(
             "s3",
@@ -55,7 +56,7 @@ class S3StorageAdapter:
            
            try:
                
-               await s3.upload_fileobj(file_stream, self.upload_bucket,Key=file_key)
+               await s3.upload_fileobj(file_stream, bucket,Key=file_key)
                logger.info(f"File uploaded: {file_key[:8]}") 
            except Exception as e :
                logger.error(f"ERROR: {str(e).lower()}")
