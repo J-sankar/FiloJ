@@ -10,7 +10,7 @@ dependencies = []
 members = [
     "api",
     "security_scanner",
-    "logger",
-    "image-processor",
+    "logger_service",
+    "image_processor",
     "shared"
 ]
