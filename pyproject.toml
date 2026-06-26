@@ -12,5 +12,6 @@ members = [
     "security_scanner",
     "logger_service",
     "image_processor",
-    "shared"
+    "shared",
+    "auth_service"
 ]
