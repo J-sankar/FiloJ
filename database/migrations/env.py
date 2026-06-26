@@ -8,6 +8,7 @@ from alembic import context
 
 # 1. Import your shared Base and models so Alembic can "see" your tables
 from shared.database import Base
+import auth_service.models.auth# noqa: F401
 import shared.models  # noqa: F401
 
 # this is the Alembic Config object
