@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Depends
+from fastapi import FastAPI, UploadFile, File, Depends,Request
 from fastapi.exceptions import HTTPException
 from contextlib import asynccontextmanager
 from shared.logger import get_logger
@@ -9,6 +9,8 @@ from shared.storage import S3StorageAdapter
 from api.utils import allowed_file_type, get_file_type
 from sqlalchemy import select
 import hashlib
+
+from api.dependencies import get_developer,DeveloperHeaders
 
 logger = get_logger(__name__)
 storage = S3StorageAdapter()
@@ -44,8 +46,10 @@ async def iterator(filename: str):
 
 @app.post("/file/upload")
 async def upload_file(
+    developer    : DeveloperHeaders = Depends(get_developer) ,
     uploaded_file: UploadFile = File(...), db: AsyncSession = Depends(get_session)
-):
+):  
+  
     filename = uploaded_file.filename
     filetype = get_file_type(filename)
     if not allowed_file_type(filename):
@@ -61,7 +65,7 @@ async def upload_file(
         job_res = await db.execute(
             select(Job)
             .join(Job.file)
-            .where(FileMetaData.upload_id == file_hash)
+            .where(FileMetaData.upload_id == file_hash,FileMetaData.developer_id==developer.developer_id)
             .order_by(Job.updated_at.desc())
         )
         existing_job = job_res.scalars().first()
@@ -90,7 +94,9 @@ async def upload_file(
                 type=filetype,
                 name=filename,
                 upload_id=file_hash,
-                storage_location=file_key
+                storage_location=file_key,
+
+                developer_id     = developer.developer_id,
             )   
  
             new_job = Job(
