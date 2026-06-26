@@ -46,6 +46,9 @@ class FileMetaData(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255),nullable=False)
+    developer_id: Mapped[uuid.UUID] = mapped_column(
+        default=uuid.uuid4, nullable=False, index=True  # ✅ just a value
+    )
     type: Mapped[str] = mapped_column(String(20),nullable=False)
     upload_id: Mapped[str] = mapped_column(String, index=True,nullable=False)
     storage_location: Mapped[str] = mapped_column(String(255),nullable=False)
