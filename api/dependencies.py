@@ -1,7 +1,9 @@
 # auth_service/utils/dependencies.py
 from fastapi import Request, HTTPException
 import uuid
+import os
 
+env = os.getenv("ENV")
 class DeveloperHeaders:
     def __init__(self, developer_id: str, plan: str):
         self.developer_id = developer_id
@@ -10,7 +12,9 @@ class DeveloperHeaders:
 async def get_developer(request: Request) -> DeveloperHeaders:
     developer_id = request.headers.get("X-Developer-Id")
     plan         = request.headers.get("X-Developer-Plan")
-
+    
+    if env == "development":
+        return  DeveloperHeaders(developer_id= uuid.uuid4(), plan= "BASIC")
     if not developer_id:
         raise HTTPException(401, "Unauthorized — missing developer id")
     if not plan:
@@ -26,4 +30,4 @@ async def get_developer(request: Request) -> DeveloperHeaders:
     return DeveloperHeaders(
         developer_id = developer_id,
         plan         = plan
-    )
+    ) 

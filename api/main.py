@@ -6,9 +6,10 @@ from shared.database import get_session, engine, Base, AsyncSession
 from shared.models import Job, FileMetaData
 from shared.broker import BrokerClient
 from shared.storage import S3StorageAdapter
-from api.utils import allowed_file_type, get_file_type
+from api.utils import allowed_file_type, get_file_type,validate_mime
 from sqlalchemy import select
 import hashlib
+
 
 from api.dependencies import get_developer,DeveloperHeaders
 
@@ -49,12 +50,17 @@ async def upload_file(
     developer    : DeveloperHeaders = Depends(get_developer) ,
     uploaded_file: UploadFile = File(...), db: AsyncSession = Depends(get_session)
 ):  
-  
+    
     filename = uploaded_file.filename
+    
     filetype = get_file_type(filename)
+
     if not allowed_file_type(filename):
-        logger.error(f"Invalid file type , file : {filename} | {filetype}")
+        logger.warning(f"Invalid file type , file : {filename} | {filetype}")
         raise HTTPException(status_code=400, detail="File type is invalid")
+    if not  await validate_mime(uploaded_file):
+        raise HTTPException(400,"File type mismatch — file content does not match extension")
+    
     try:
         m = hashlib.sha256()
         chunk_size = 1024 * 1024
