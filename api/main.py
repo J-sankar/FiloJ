@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Depends,Request
+from fastapi import FastAPI, UploadFile, File, Depends
 from fastapi.exceptions import HTTPException
 from contextlib import asynccontextmanager
 from shared.logger import get_logger

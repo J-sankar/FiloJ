@@ -13,8 +13,7 @@ async def get_developer(request: Request) -> DeveloperHeaders:
     developer_id = request.headers.get("X-Developer-Id")
     plan         = request.headers.get("X-Developer-Plan")
     
-    if env == "development":
-        return  DeveloperHeaders(developer_id= uuid.uuid4(), plan= "BASIC")
+
     if not developer_id:
         raise HTTPException(401, "Unauthorized — missing developer id")
     if not plan:

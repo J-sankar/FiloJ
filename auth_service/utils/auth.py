@@ -78,8 +78,6 @@ async def get_current_developer(
     Extracts the authenticated user's ID from the NGINX gateway header.
     """
     if not x_developer_id:
-        # If NGINX is configured correctly, this should never happen,
-        # but it protects you if someone accidentally opens the container port directly.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Missing User ID header. Are you bypassing the gateway?"

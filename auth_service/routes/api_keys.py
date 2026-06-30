@@ -16,7 +16,7 @@ import hashlib
 
 router = APIRouter(prefix="", tags=["apikey"])
 
-@router.post("/", response_model=ApiKeyCreateResponse)
+@router.post("", response_model=ApiKeyCreateResponse)
 async def create_apikey(
     body: ApiKeyCreate,x_developer_id : uuid.UUID = Depends(get_current_developer), db:AsyncSession = Depends(get_session)
 ) -> ApiKeyCreateResponse:

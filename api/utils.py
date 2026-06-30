@@ -21,7 +21,7 @@ def allowed_file_type(filename:str) -> bool :
 async def validate_mime(file:UploadFile) ->bool:
     claimed_mime = file.content_type
     header = await file.read(2048)
-    actual_mime = magic.from_buffer(header)
+    actual_mime = magic.from_buffer(header,mime=True)
     logger.debug(f"actual: {actual_mime} | claimed: {claimed_mime}")
     if claimed_mime != actual_mime:
         logger.warning(f"mismatch: CLAIMED MIME: {claimed_mime} | ACTUAL_MIME: {actual_mime}")

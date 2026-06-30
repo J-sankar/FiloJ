@@ -13,5 +13,6 @@ members = [
     "logger_service",
     "image_processor",
     "shared",
-    "auth_service"
+    "auth_service",
+    "gateway"
 ]
