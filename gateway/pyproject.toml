@@ -1,0 +1,13 @@
+[project]
+name = "api-gateway"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.138.0",
+    "httpx>=0.28.1",
+    "python-jose>=3.5.0",
+    "shared",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
