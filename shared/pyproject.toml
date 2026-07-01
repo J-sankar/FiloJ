@@ -7,6 +7,9 @@ dependencies= [
     "aioboto3>=15.5.0",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
+    "grpcio>=1.81.1",
+    "grpcio-health-checking>=1.81.1",
+    "grpcio-tools>=1.81.1",
     "python-dotenv>=1.2.2",
     "sqlalchemy>=2.0.0",
 ]

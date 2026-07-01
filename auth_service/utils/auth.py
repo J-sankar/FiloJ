@@ -6,6 +6,7 @@ from fastapi import HTTPException, Request, Response,Header,status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import uuid
+import hashlib
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -91,3 +92,9 @@ async def get_current_developer(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Invalid Developer ID format"
         )
+    
+
+
+def hash_api_key(api_key:str)->str:
+    """Function to hash api key"""
+    return hashlib.sha256(api_key.strip().encode()).hexdigest()

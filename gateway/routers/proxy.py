@@ -32,7 +32,7 @@ async def proxy_request(
     logger.info(f"Incoming method: {request.method}")  # add this
     proxy_url = f"{target}/{path}"
     logger.debug(proxy_url)
-    if service == "auth" and path == "  api/key":
+    if service == "auth" and path == "api/key":
         logger.debug("here ?")
         token = decode_token(request)
         developer_id = token.get("sub")
