@@ -2,13 +2,20 @@ from fastapi import Request, HTTPException
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 from gateway.utils.headers import HeaderBuilder
-from gateway.core.security import decode_token
 from httpx import AsyncClient
 from gateway.core.config import TIMEOUTS, SERVICES
+from gateway.handlers.auth import AuthServiceHandler
+from gateway.handlers.base import ServiceHandler
+from gateway.handlers.file import FileServiceHandler
 from shared.logger import get_logger
 import httpx
 
 logger = get_logger(__name__)
+
+SERVICE_HANDLERS: dict[str, ServiceHandler] = {
+    "auth": AuthServiceHandler(),
+    "file": FileServiceHandler(),
+}
 
 
 def get_service_url(service: str) -> str:
@@ -31,15 +38,12 @@ async def proxy_request(
     timeout = get_timeout(service)
     logger.info(f"Incoming method: {request.method}")  # add this
     proxy_url = f"{target}/{path}"
-    logger.debug(proxy_url)
-    if service == "auth" and path == "api/key":
-        logger.debug("here ?")
-        token = decode_token(request)
-        developer_id = token.get("sub")
-        plan = token.get("plan")
+
+    handler = SERVICE_HANDLERS.get(service)
+    if handler and handler.should_handle(path):
+        developer_id, plan = await handler.get_context(request)
+
     headers = HeaderBuilder.from_request(request, developer_id, plan).to_dict()
-    logger.debug(headers)
-    logger.info(f"Forwarding to: {proxy_url}")
     params = dict(request.query_params)
     logger.info(f"Gateway: {service}/{path} | method : {request.method}")
     client: AsyncClient = request.app.state.http_client
