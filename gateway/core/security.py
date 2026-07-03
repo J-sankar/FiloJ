@@ -2,12 +2,12 @@ from jose import jwt,JWTError
 from fastapi import Request,HTTPException
 from gateway.core.config import (JWT_ALGORITHM,JWT_SECRET)
 from shared.logger import get_logger
-import hashlib
+from gateway.grpc_clients.auth_client import AuthGrpcClient
 
 logger  = get_logger(__name__)
 
 
-
+grpc_auth_client = AuthGrpcClient()
 
 def decode_token(request:Request) :
     headers = request.headers
@@ -30,7 +30,7 @@ def decode_token(request:Request) :
 
 
 
-async def hash_api_key(request:Request):
+async def verify_api_key(request:Request):
     headers = request.headers
     auth_headers = headers.get("Authorization")
     if not auth_headers:
@@ -40,7 +40,9 @@ async def hash_api_key(request:Request):
     if len(parts) != 2 or parts[0].lower() != "bearer":
         raise HTTPException(401, "Invalid Authorization header format")
     api_key = parts[1]
-    hashed_key = hashlib.sha256(api_key).hexdigest()
-    logger.info("api key hashed")
-    return hashed_key
+    if not api_key:
+        raise HTTPException(401, "Api Key Missing")
+    response = await grpc_auth_client.validate_key(api_key)
+
+    return response 
    
