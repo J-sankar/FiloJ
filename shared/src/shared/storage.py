@@ -63,7 +63,7 @@ class S3StorageAdapter:
                raise e
 
 
-    async def get_file_url(self,file_key:str, expires_in: int = 3600):
+    async def get_presigned_url(self,file_key:str,bucket:str, expires_in: int = 3600):
         """get predefine_url for file objects in s3"""
         async with self.session.client("s3",
             region_name=self.region,
@@ -80,7 +80,7 @@ class S3StorageAdapter:
                 
                 response = await s3.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': self.upload_bucket, 'Key': file_key},
+                Params={'Bucket': bucket, 'Key': file_key},
                 ExpiresIn=expires_in,
                 )
             except ClientError as e:

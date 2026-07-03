@@ -13,5 +13,6 @@ message ValidateKeyRequest {
 message ValidateKeyResponse {
     bool valid = 1;
     string plan = 2;
+    string developer_id = 3;
 
 }
