@@ -3,14 +3,14 @@ from shared.logger import get_logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from auth_service.utils.auth import hash_api_key
-from auth_service.models.auth import ApiKey
+from auth_service.models.auth import ApiKey,Developer
 from auth_service.core.exceptions import InactiveApiKeyError,InactiveDeveloperError,InvalidApiKeyError
 
 logger = get_logger(__name__)
 
 
 
-async def validate_api_key(api_key:str,db:AsyncSession) :
+async def validate_api_key(api_key:str,db:AsyncSession)-> Developer :
     key_hash = hash_api_key(api_key)
     try:
         res = await db.execute(
