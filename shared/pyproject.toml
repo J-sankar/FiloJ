@@ -10,7 +10,9 @@ dependencies= [
     "grpcio>=1.81.1",
     "grpcio-health-checking>=1.81.1",
     "grpcio-tools>=1.81.1",
+    "pydantic-settings>=2.14.2",
     "python-dotenv>=1.2.2",
+    "redis[hiredis]>=8.0.1",
     "sqlalchemy>=2.0.0",
 ]
 [tool.setuptools.packages.find]
