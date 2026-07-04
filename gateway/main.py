@@ -1,12 +1,16 @@
 
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from gateway.routers.proxy import proxy_request
-from shared.logger import get_logger
 from contextlib import asynccontextmanager
+
 import time
 import httpx
+
+from gateway.core.config import settings
+from gateway.routers.proxy import proxy_request
+from shared.logger import get_logger
+from shared.redis.client import RedisClient
+
 
 
 logger = get_logger(__name__)
@@ -17,12 +21,17 @@ async def lifespan(app: FastAPI):
     client = httpx.AsyncClient(
         limits=httpx.Limits(max_keepalive_connections=50, max_connections=100)
     )
+    try:
+        redis_client = RedisClient(settings.REDIS_HOST, settings.REDIS_PORT)
+        app.state.redis = redis_client
+        await redis_client.ping()
+        app.state.http_client = client
 
-    app.state.http_client = client
+        yield
 
-    yield
-
-    await app.state.http_client.aclose()
+        await app.state.http_client.aclose()
+    except Exception as e:
+        logger.exception(f"ERROR : {str(e).lower()}")
 
 
 app = FastAPI(title="API Gateway", lifespan=lifespan)

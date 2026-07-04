@@ -1,8 +1,9 @@
-from jose import jwt,JWTError
-from fastapi import Request,HTTPException
-from gateway.core.config import (JWT_ALGORITHM,JWT_SECRET)
-from shared.logger import get_logger
 from gateway.grpc_clients.auth_client import AuthGrpcClient
+from fastapi import HTTPException, Request
+from jose import JWTError, jwt
+
+from gateway.core.config import settings
+from shared.logger import get_logger
 
 logger  = get_logger(__name__)
 
@@ -20,7 +21,11 @@ def decode_token(request:Request) :
         raise HTTPException(401, "Invalid Authorization header format")
     bearer_token = parts[1]
     try:
-        token=jwt.decode(bearer_token,JWT_SECRET, algorithms=JWT_ALGORITHM)
+        token = jwt.decode(
+            bearer_token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
         logger.info("Token decoded")
         return token
     except JWTError as e:
