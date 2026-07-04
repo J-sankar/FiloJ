@@ -1,14 +1,11 @@
 import grpc.aio
 from grpc import RpcError
 from gateway.generated import auth_pb2_grpc,auth_pb2
-from gateway.core.config import SERVICES
 from fastapi import HTTPException, status
 from shared.logger import get_logger
 
 
 logger = get_logger(__name__)
-
-auth_url = SERVICES.get("auth")
 
 
 class AuthGrpcClient:
