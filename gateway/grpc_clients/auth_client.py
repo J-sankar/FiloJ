@@ -1,8 +1,10 @@
 import grpc.aio
 from grpc import RpcError
-from gateway.generated import auth_pb2_grpc,auth_pb2
+from auth_service.grpc.generated import auth_pb2_grpc
 from fastapi import HTTPException, status
 from shared.logger import get_logger
+
+from auth_service.grpc.generated import auth_pb2
 
 
 logger = get_logger(__name__)
@@ -16,11 +18,11 @@ class AuthGrpcClient:
         self.stub = auth_pb2_grpc.AuthServiceStub(self.channel)
         logger.info(f"gRPC Client (Auth): Connected to {self.target}")
 
-    async def validate_key(self, api_key:str) -> auth_pb2.ValidateKeyResponse :
+    async def look_up_api_key(self, api_key:str) -> auth_pb2.ApiKeyLookupResponse :
         """Validates API KEY with Auth service with gRPC"""
         try:
-            request:auth_pb2.ValidateKeyRequest = auth_pb2.ValidateKeyRequest(api_key=api_key)
-            response = await self.stub.ValidateKey(request)
+            request:auth_pb2.ApiKeyLookupRequest = auth_pb2.ApiKeyLookupRequest(key_hash=api_key)
+            response = await self.stub.LookupApiKey(request)
             return response
         except RpcError as e:
             logger.warning(f"gRPC Client (Auth)| ERROR : {e.details()} |Code : {e.code()}",exc_info=True)
@@ -52,6 +54,7 @@ class AuthGrpcClient:
     async def close(self):
         """Gracefully close connection during shutdown """
         await self.channel.close()
+        logger.info("gRPC(Auth): Connection closed")
         
         
 
