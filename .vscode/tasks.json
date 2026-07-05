@@ -35,6 +35,12 @@
             "command": "uv run python -m image_processor.worker"
         },
         {
+            "label": "gRPC: Auth Server",
+            "type": "shell",
+            "command": "uv run python -m auth_service.grpc.grpc_server"
+
+        },
+        {
             "label": "Docker Compose",
             "type": "shell",
             "command": "docker compose up"
@@ -48,6 +54,7 @@
                 "Service: File API",
                 "Worker: Security Scanner",
                 "Worker: Image Processor",
+                "gRPC: Auth Server",
                 "Docker Compose"
             ],
             "group": {
