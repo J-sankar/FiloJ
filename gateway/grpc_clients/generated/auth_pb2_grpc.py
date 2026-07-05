@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from gateway.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
+from gateway.grpc_clients.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
 
 GRPC_GENERATED_VERSION = '1.81.1'
 GRPC_VERSION = grpc.__version__
@@ -34,17 +34,17 @@ class AuthServiceStub:
         Args:
             channel: A grpc.Channel.
         """
-        self.ValidateKey = channel.unary_unary(
-                '/auth.AuthService/ValidateKey',
-                request_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyRequest.SerializeToString,
-                response_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyResponse.FromString,
+        self.LookupApiKey = channel.unary_unary(
+                '/auth.AuthService/LookupApiKey',
+                request_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.SerializeToString,
+                response_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.FromString,
                 _registered_method=True)
 
 
 class AuthServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
-    def ValidateKey(self, request, context):
+    def LookupApiKey(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,10 +53,10 @@ class AuthServiceServicer:
 
 def add_AuthServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ValidateKey': grpc.unary_unary_rpc_method_handler(
-                    servicer.ValidateKey,
-                    request_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyRequest.FromString,
-                    response_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyResponse.SerializeToString,
+            'LookupApiKey': grpc.unary_unary_rpc_method_handler(
+                    servicer.LookupApiKey,
+                    request_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.FromString,
+                    response_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -70,7 +70,7 @@ class AuthService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ValidateKey(request,
+    def LookupApiKey(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class AuthService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/auth.AuthService/ValidateKey',
-            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyRequest.SerializeToString,
-            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ValidateKeyResponse.FromString,
+            '/auth.AuthService/LookupApiKey',
+            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.SerializeToString,
+            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.FromString,
             options,
             channel_credentials,
             insecure,
