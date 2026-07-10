@@ -119,6 +119,7 @@ async def scan_file(
                     if final_stat == "infected":
                         await s3.move_to_quarantine(file_key)
                         filemetadata.bucket = "quarantine"
+                        job.status = "quarantined"
                         await db.commit()
                         return
                     job.result_data = scan_res
