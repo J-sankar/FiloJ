@@ -2,17 +2,21 @@ syntax = "proto3";
 
 package auth;
 
-service AuthService {
-    rpc ValidateKey(ValidateKeyRequest) returns (ValidateKeyResponse) ;
+message ApiKeyLookupRequest {
+    string key_hash = 1;
 }
 
-message ValidateKeyRequest {
-    string api_key = 1 ;
-}
-
-message ValidateKeyResponse {
-    bool valid = 1;
-    string plan = 2;
+message ApiKeyLookupResponse {
+    bool found = 1;              
+    string status = 2;          
     string developer_id = 3;
+    string api_key_id = 4;
+    string plan = 5;
+    int64 requests_per_hour = 6;
+    int64 max_file_size_bytes = 7;
+    int64 storage_quota_bytes = 8;
+}
 
+service AuthService {
+    rpc LookupApiKey(ApiKeyLookupRequest) returns (ApiKeyLookupResponse);
 }

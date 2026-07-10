@@ -1,20 +1,39 @@
-import os
-from dotenv import load_dotenv
+# gateway/core/config.py
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-load_dotenv()
-SERVICES = {
-    "file": os.getenv("FILE_SERVICE_URL", "http://localhost:8002"),
-    "auth": os.getenv("AUTH_SERVICE_URL", "http://localhost:8001")
-}
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-TIMEOUTS = {
-    "file": 60.0,
-    "auth": 10,
-    "default": 30
-}
+    FILE_SERVICE_URL: str = "http://localhost:8002"
+    AUTH_SERVICE_URL: str = "http://localhost:8001"
 
-INTERNAL_GATEWAY_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", None)
+    FILE_SERVICE_TIMEOUT: float = 60.0
+    AUTH_SERVICE_TIMEOUT: float = 10.0
+    DEFAULT_TIMEOUT: float = 30.0
 
-JWT_SECRET          = os.getenv("JWT_SECRET")
-JWT_ALGORITHM       = os.getenv("JWT_ALGORITHM", "HS256")
+    INTERNAL_GATEWAY_SECRET: str | None = None
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
+
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+
+    @property
+    def services(self) -> dict[str, str]:
+        return {
+            "file": self.FILE_SERVICE_URL,
+            "auth": self.AUTH_SERVICE_URL,
+        }
+
+    @property
+    def timeouts(self) -> dict[str, float]:
+        return {
+            "file": self.FILE_SERVICE_TIMEOUT,
+            "auth": self.AUTH_SERVICE_TIMEOUT,
+            "default": self.DEFAULT_TIMEOUT,
+        }
+
+
+settings = Settings()

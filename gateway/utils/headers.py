@@ -1,7 +1,9 @@
-from fastapi import Request
-import uuid
-from gateway.core.config import INTERNAL_GATEWAY_SECRET
 from dataclasses import dataclass, field
+import uuid
+
+from fastapi import Request
+
+from gateway.core.config import settings
 
 
 @dataclass
@@ -10,9 +12,11 @@ class HeaderBuilder:
     accept: str = ""
     developer_id: str = ""
     developer_plan: str = ""
-    internal_secret : str = INTERNAL_GATEWAY_SECRET
+    internal_secret: str | None = field(
+        default_factory=lambda: settings.INTERNAL_GATEWAY_SECRET
+    )
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    cookie: str = " "
+    cookie: str = ""
     # api_key: str = "" TO BE COMPLETED
 
     @classmethod
@@ -25,7 +29,7 @@ class HeaderBuilder:
             developer_id=developer_id,
             developer_plan=plan,
             request_id=request.headers.get("x-request-id", str(uuid.uuid4())),
-            cookie=request.headers.get("cookie")
+            cookie=request.headers.get("cookie", ""),
         )
 
     def to_dict(self) -> dict:

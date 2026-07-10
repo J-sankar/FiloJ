@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 from gateway.utils.headers import HeaderBuilder
 from httpx import AsyncClient
-from gateway.core.config import TIMEOUTS, SERVICES
+from gateway.core.config import settings
 from gateway.handlers.auth import AuthServiceHandler
 from gateway.handlers.base import ServiceHandler
 from gateway.handlers.file import FileServiceHandler
@@ -19,7 +19,7 @@ SERVICE_HANDLERS: dict[str, ServiceHandler] = {
 
 
 def get_service_url(service: str) -> str:
-    url = SERVICES.get(service)
+    url = settings.services.get(service)
     if not url:
         logger.error(f"ERROR: {service} not found in gateway")
         raise HTTPException(404, f"Service '{service}' not found")
@@ -27,8 +27,7 @@ def get_service_url(service: str) -> str:
 
 
 def get_timeout(service: str) -> float:
-
-    return TIMEOUTS.get(service, TIMEOUTS["default"])
+    return settings.timeouts.get(service, settings.timeouts["default"])
 
 
 async def proxy_request(

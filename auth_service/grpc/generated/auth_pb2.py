@@ -24,17 +24,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#shared/src/shared/protos/auth.proto\x12\x04\x61uth\"%\n\x12ValidateKeyRequest\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t\"H\n\x13ValidateKeyResponse\x12\r\n\x05valid\x18\x01 \x01(\x08\x12\x0c\n\x04plan\x18\x02 \x01(\t\x12\x14\n\x0c\x64\x65veloper_id\x18\x03 \x01(\t2Q\n\x0b\x41uthService\x12\x42\n\x0bValidateKey\x12\x18.auth.ValidateKeyRequest\x1a\x19.auth.ValidateKeyResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#shared/src/shared/protos/auth.proto\x12\x04\x61uth\"\'\n\x13\x41piKeyLookupRequest\x12\x10\n\x08key_hash\x18\x01 \x01(\t\"\xc2\x01\n\x14\x41piKeyLookupResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x14\n\x0c\x64\x65veloper_id\x18\x03 \x01(\t\x12\x12\n\napi_key_id\x18\x04 \x01(\t\x12\x0c\n\x04plan\x18\x05 \x01(\t\x12\x19\n\x11requests_per_hour\x18\x06 \x01(\x03\x12\x1b\n\x13max_file_size_bytes\x18\x07 \x01(\x03\x12\x1b\n\x13storage_quota_bytes\x18\x08 \x01(\x03\x32T\n\x0b\x41uthService\x12\x45\n\x0cLookupApiKey\x12\x19.auth.ApiKeyLookupRequest\x1a\x1a.auth.ApiKeyLookupResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'shared.src.shared.protos.auth_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_VALIDATEKEYREQUEST']._serialized_start=45
-  _globals['_VALIDATEKEYREQUEST']._serialized_end=82
-  _globals['_VALIDATEKEYRESPONSE']._serialized_start=84
-  _globals['_VALIDATEKEYRESPONSE']._serialized_end=156
-  _globals['_AUTHSERVICE']._serialized_start=158
-  _globals['_AUTHSERVICE']._serialized_end=239
+  _globals['_APIKEYLOOKUPREQUEST']._serialized_start=45
+  _globals['_APIKEYLOOKUPREQUEST']._serialized_end=84
+  _globals['_APIKEYLOOKUPRESPONSE']._serialized_start=87
+  _globals['_APIKEYLOOKUPRESPONSE']._serialized_end=281
+  _globals['_AUTHSERVICE']._serialized_start=283
+  _globals['_AUTHSERVICE']._serialized_end=367
 # @@protoc_insertion_point(module_scope)

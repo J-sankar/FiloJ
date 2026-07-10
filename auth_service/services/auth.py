@@ -2,16 +2,15 @@ from shared.database import AsyncSession
 from shared.logger import get_logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from auth_service.utils.auth import hash_api_key
 from auth_service.models.auth import ApiKey,Developer
-from auth_service.core.exceptions import InactiveApiKeyError,InactiveDeveloperError,InvalidApiKeyError
+from auth_service.core.exceptions import InactiveDeveloperError,InvalidApiKeyError
 
 logger = get_logger(__name__)
 
 
 
-async def validate_api_key(api_key:str,db:AsyncSession)-> Developer :
-    key_hash = hash_api_key(api_key)
+async def get_api_key_developer(key_hash:str,db:AsyncSession)-> tuple[Developer,str] :
+
     try:
         res = await db.execute(
                     select(ApiKey)
@@ -22,13 +21,11 @@ async def validate_api_key(api_key:str,db:AsyncSession)-> Developer :
         if not api_key:
             logger.warning("key not found")
             raise InvalidApiKeyError("Api key not found. Please check with the environment")
-        if not api_key.is_active:
-            logger.warning("Revoked/Access denied")
-            raise InactiveApiKeyError("Revoked/Access Denied")
         developer = api_key.developer
         if not developer.is_active:
             raise InactiveDeveloperError("Developer inactive/revoked")
-        return developer
+        status = "active" if api_key.is_active else "revoked"
+        return (developer,status)
     
     except Exception :
         raise 
