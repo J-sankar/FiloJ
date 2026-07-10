@@ -4,7 +4,6 @@
         "echo": true,
         "reveal": "always",
         "focus": false,
-        "panel": "dedicated",
         "showReuseMessage": false,
         "clear": true
     },
@@ -12,43 +11,63 @@
         {
             "label": "Gateway",
             "type": "shell",
-            "command": "uv run uvicorn gateway.main:app --reload"
-        },
-        {
-            "label": "Service: Auth",
-            "type": "shell",
-            "command": "uv run uvicorn auth_service.main:app --reload --port 8001"
-        },
-        {
-            "label": "Service: File API",
-            "type": "shell",
-            "command": "uv run uvicorn api.main:app --reload --port 8002"
-        },
-        {
-            "label": "Worker: Security Scanner",
-            "type": "shell",
-            "command": "uv run python -m security_scanner.worker"
-        },
-        {
-            "label": "Worker: Image Processor",
-            "type": "shell",
-            "command": "uv run python -m image_processor.worker"
+            "command": "uv run uvicorn gateway.main:app --reload",
+            "presentation": { "group": "infra-and-gateway" }
         },
         {
             "label": "Docker Compose",
             "type": "shell",
-            "command": "docker compose up"
+            "command": "docker compose up",
+            "presentation": { "group": "infra-and-gateway" }
+        },
+        {
+            "label": "Service: Auth",
+            "type": "shell",
+            "command": "uv run uvicorn auth_service.main:app --reload --port 8001",
+            "presentation": { "group": "api-services" }
+        },
+        {
+            "label": "Service: File API",
+            "type": "shell",
+            "command": "uv run uvicorn api.main:app --reload --port 8002",
+            "presentation": { "group": "api-services" }
+        },
+        {
+            "label": "gRPC: Auth Server",
+            "type": "shell",
+            "command": "uv run python -m auth_service.grpc.grpc_server",
+            "presentation": { "group": "api-services" }
+        },
+        {
+            "label": "Worker: Security Scanner",
+            "type": "shell",
+            "command": "uv run python -m security_scanner.worker",
+            "presentation": { "group": "background-workers" }
+        },
+        {
+            "label": "Worker: Image Processor",
+            "type": "shell",
+            "command": "uv run python -m image_processor.worker",
+            "presentation": { "group": "background-workers" }
+        },
+        {
+            "label": "Service: Logging",
+            "type": "shell",
+            "command": "uv run python -m logger_service.worker",
+            "presentation": { "group": "background-workers" }
         },
         {
             "label": "Full Start",
             "dependsOrder": "parallel",
             "dependsOn": [
                 "Gateway",
+                "Docker Compose",
                 "Service: Auth",
                 "Service: File API",
+                "gRPC: Auth Server",
                 "Worker: Security Scanner",
                 "Worker: Image Processor",
-                "Docker Compose"
+                "Service: Logging"
             ],
             "group": {
                 "kind": "build",
@@ -59,6 +78,7 @@
             "label": "System: Kill All",
             "type": "shell",
             "command": "make stop && make reset-redis",
+            "presentation": { "panel": "new" },
             "problemMatcher": []
         }
     ]
