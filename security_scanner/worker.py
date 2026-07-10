@@ -6,6 +6,7 @@ from security_scanner.clamav import ClamAVClient
 from shared.database import AsyncSesssionLocal
 from shared.models import Job, FileMetaData
 from shared.config import ALLOWED_FILES
+from shared.webhook import dispatch_to_webhook
 from sqlalchemy import select
 from aio_pika.abc import AbstractIncomingMessage
 import json
@@ -21,7 +22,8 @@ s3 = S3StorageAdapter()
 
 
 MAX_DELIVERY_COUNT = 3
-MAX_CHUNK_SIZE = 50*1024*1024
+MAX_CHUNK_SIZE = 50 * 1024 * 1024
+
 
 @asynccontextmanager
 async def job_transaction(job_id: str):
@@ -29,7 +31,7 @@ async def job_transaction(job_id: str):
     async with AsyncSesssionLocal() as db:
         try:
             yield db
-        except ConnectionError :
+        except ConnectionError:
             job = await db.get(Job, uuid.UUID(job_id))
             if job:
                 job.status = "queued_for_retry"
@@ -121,24 +123,41 @@ async def scan_file(
                         filemetadata.bucket = "quarantine"
                         job.status = "quarantined"
                         await db.commit()
-                        return
+                        await dispatch_to_webhook(
+                            broker,
+                            "event.job.quarantined",
+                            job.file_id,
+                            "infected",
+                            scan_res,
+                        )
+
                     job.result_data = scan_res
                     job.status = final_stat
                     await db.commit()
-                    if ALLOWED_FILES.get(filemetadata.type, None) == "image" and final_stat == "clean":
-                        await broker.publish(
-                            "work.tasks", "task.image.process", data
-                        )
+                    if (
+                        ALLOWED_FILES.get(filemetadata.type, None) == "image"
+                        and final_stat == "clean"
+                    ):
+                        await broker.publish("work.tasks", "task.image.process", data)
                         await _publish_audit(
                             broker,
                             job_id,
                             "event.scanner.image_queued",  # Fix: was wrongly reusing scan_success key
                             "image submitted to processing",
                         )
-                        logger.info(f"Job:{job_id[:8]} | Image scheduled for processing")
+                        logger.info(
+                            f"Job:{job_id[:8]} | Image scheduled for processing"
+                        )
                     else:
                         job.status = "completed"
                         await db.commit()
+                        await dispatch_to_webhook(
+                            broker,
+                            "event.job.completed",
+                            job.file_id,
+                            "completed",
+                            scan_res,
+                        )
 
         except ConnectionError:
             await _publish_audit(
@@ -164,10 +183,14 @@ async def scan_file(
                 delivery_count >= MAX_DELIVERY_COUNT
             ):  # Fix: was == 3 (misses counts > 3)
                 action = "moved to dlx exchange"
+                await dispatch_to_webhook(
+                    broker, "event.job.failed", job.file_id, "failed", scan_res
+                )
+
             else:
                 action = f"error: {str(e)[:50]}, retrying (attempt {delivery_count + 1}/{MAX_DELIVERY_COUNT})"
             await _publish_audit(broker, job_id, "event.scanner.scan_fail", action)
-            raise 
+            raise
 
 
 async def scan_worker():
