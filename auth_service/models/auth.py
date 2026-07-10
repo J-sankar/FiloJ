@@ -16,6 +16,8 @@ class Developer(Base):
     name       : Mapped[str]       = mapped_column(String(255), nullable=False)
     plan       : Mapped[str]       = mapped_column(String(50), default="free")
     is_active  : Mapped[bool]      = mapped_column(Boolean, default=True)
+    webhook_url    : Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    webhook_secret : Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at : Mapped[datetime]  = mapped_column(server_default=func.now())
     updated_at : Mapped[datetime]  = mapped_column(server_default=func.now(), onupdate=func.now())
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="developer")
