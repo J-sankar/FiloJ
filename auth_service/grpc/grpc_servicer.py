@@ -6,8 +6,10 @@ from auth_service.core.exceptions import (
     InvalidApiKeyError,
     InactiveApiKeyError,
     InactiveDeveloperError,
+    DeveloperNotFoundError,
+    WebhookConfigNotFoundError
 )
-from auth_service.services.auth import get_api_key_developer
+from auth_service.services.auth import get_api_key_developer,get_webhook_config
 from shared.plan_limits import PLAN_LIMITS
 import grpc
 
@@ -48,3 +50,28 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
             storage_quota_bytes=storage_quota_bytes,
             developer_id=str(developer.id),
         )
+
+    async def LookupWebhookConfig(self, request, context):
+        logger.debug(
+            f"Obtained webhook lookup request for developer: {request.developer_id[:8]}"
+        )
+        async with AsyncSesssionLocal() as db:
+            try:
+                webhook_url,webhook_secret = await get_webhook_config(request.developer_id,db)
+                return auth_pb2.WebhookConfigResponse(
+                    found =1 ,
+                    webhook_url=webhook_url,
+                    webhook_secret=webhook_secret
+                )
+            except WebhookConfigNotFoundError as e:
+                logger.warning(f"ERROR: {str(e).lower()}")
+                return auth_pb2.WebhookConfigResponse(
+                    found = 0
+                )
+            except DeveloperNotFoundError as e:
+                logger.exception(f"ERROR: {str(e).lower()}")
+                await context.abort(grpc.StatusCode.NOT_FOUND,str(e).lower())
+            except Exception as e:
+                logger.exception(f"Auth failed: {str(e).lower()}")
+                await context.abort(grpc.StatusCode.INTERNAL, str(e).lower())
+

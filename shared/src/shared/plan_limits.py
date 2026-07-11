@@ -1,6 +1,6 @@
 PLAN_LIMITS = {
     "free": {
-        "requests_per_hour": 100,
+        "requests_per_hour": 15,
         "max_file_size_bytes": 10 * 1024 * 1024,       # 10 MB
         "storage_quota_bytes": 1 * 1024 * 1024 * 1024,  # 1 GB
     },

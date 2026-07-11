@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-from gateway.grpc_clients.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
+from auth_service.grpc.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
 
-GRPC_GENERATED_VERSION = '1.81.1'
+GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -39,12 +39,23 @@ class AuthServiceStub:
                 request_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.SerializeToString,
                 response_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.FromString,
                 _registered_method=True)
+        self.LookupWebhookConfig = channel.unary_unary(
+                '/auth.AuthService/LookupWebhookConfig',
+                request_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigRequest.SerializeToString,
+                response_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigResponse.FromString,
+                _registered_method=True)
 
 
 class AuthServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
     def LookupApiKey(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def LookupWebhookConfig(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +68,11 @@ def add_AuthServiceServicer_to_server(servicer, server):
                     servicer.LookupApiKey,
                     request_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.FromString,
                     response_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.SerializeToString,
+            ),
+            'LookupWebhookConfig': grpc.unary_unary_rpc_method_handler(
+                    servicer.LookupWebhookConfig,
+                    request_deserializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigRequest.FromString,
+                    response_serializer=shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +102,33 @@ class AuthService:
             '/auth.AuthService/LookupApiKey',
             shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupRequest.SerializeToString,
             shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.ApiKeyLookupResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def LookupWebhookConfig(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/auth.AuthService/LookupWebhookConfig',
+            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigRequest.SerializeToString,
+            shared_dot_src_dot_shared_dot_protos_dot_auth__pb2.WebhookConfigResponse.FromString,
             options,
             channel_credentials,
             insecure,

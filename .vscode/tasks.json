@@ -12,13 +12,11 @@
             "label": "Gateway",
             "type": "shell",
             "command": "uv run uvicorn gateway.main:app --reload",
-            "presentation": { "group": "infra-and-gateway" }
         },
         {
             "label": "Docker Compose",
             "type": "shell",
             "command": "docker compose up",
-            "presentation": { "group": "infra-and-gateway" }
         },
         {
             "label": "Service: Auth",

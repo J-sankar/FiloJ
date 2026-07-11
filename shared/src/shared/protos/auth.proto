@@ -17,6 +17,18 @@ message ApiKeyLookupResponse {
     int64 storage_quota_bytes = 8;
 }
 
+message WebhookConfigRequest {
+    string developer_id = 1;
+}
+
+message WebhookConfigResponse {
+    bool found = 1;
+    string webhook_url = 2;
+    string webhook_secret = 3;
+}
+
 service AuthService {
     rpc LookupApiKey(ApiKeyLookupRequest) returns (ApiKeyLookupResponse);
+    rpc LookupWebhookConfig(WebhookConfigRequest) returns (WebhookConfigResponse) ;
 }
+

@@ -3,7 +3,7 @@
 import grpc
 import warnings  # noqa: F401
 
-from gateway.grpc_clients.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
+from dispatcher.grpc_clients.generated import auth_pb2 as shared_dot_src_dot_shared_dot_protos_dot_auth__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
