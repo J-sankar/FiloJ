@@ -1,11 +1,10 @@
 import grpc.aio
 from grpc import RpcError
 from auth_service.grpc.generated import auth_pb2_grpc
-from fastapi import HTTPException, status
+from fastapi import  status
 from shared.logger import get_logger
-
-from gateway.grpc_clients.generated import auth_pb2
-import asyncio
+from dispatcher.core.exceptions import WebhookException
+from dispatcher.grpc_clients.generated import auth_pb2
 
 logger = get_logger(__name__)
 
@@ -28,31 +27,31 @@ class AuthGrpcClient:
             logger.warning(f"gRPC Client (Auth)| ERROR : {e.details()} |Code : {e.code()}",exc_info=True)
 
             if e.code() == grpc.StatusCode.UNAUTHENTICATED :
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail= e.details()
+                raise WebhookException(
+                    code=status.HTTP_401_UNAUTHORIZED,
+                    details= e.details()
                 )
             
             if e.code() == grpc.StatusCode.UNAVAILABLE:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail= e.details()
+                raise WebhookException(
+                    code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    details= e.details()
                 )
             if e.code() == grpc.StatusCode.NOT_FOUND :
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=e.details()
+                raise WebhookException(
+                    code=status.HTTP_400_BAD_REQUEST,
+                    details=e.details()
                 )
             
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal authentication error")
+            raise WebhookException(
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details="Internal authentication error")
         
         except Exception as e:
             logger.error(f"gRPC Client (Auth) | Some Error Occured: {str(e).lower()}",exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal Server Error"
+            raise WebhookException(
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details="Internal Server Error"
             )
         
 

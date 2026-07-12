@@ -95,7 +95,7 @@ class BrokerClient:
         self.exchanges.clear()
         await self.setup_exchanges()
 
-    async def publish(self, exchange_name: str, routing_key: str, payload: dict):
+    async def publish(self, exchange_name: str, routing_key: str, payload: dict, headers: dict | None = None):
         """Publish messages to exchange specified"""
         if not self.channel:
             logger.error("BrokerClient not connected")
@@ -110,6 +110,7 @@ class BrokerClient:
         await exchange.publish(
             message=Message(body=message_body, content_type="application/json"),
             routing_key=routing_key,
+            headers = headers
         )
 
     async def close(self):
