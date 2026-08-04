@@ -22,3 +22,7 @@ class DeveloperNotFoundError(Exception):
 
 class WebhookConfigNotFoundError(Exception):
     """When Webhook is not configured by the developer"""
+
+
+class WebhookConfigConflictError(Exception):
+    """When tried to assign a new webhook configuration when one already exists"""

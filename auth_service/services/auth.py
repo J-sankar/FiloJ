@@ -46,3 +46,45 @@ async def get_webhook_config(developer_id:str | uuid.UUID,db:AsyncSession)->tupl
         return webhook_url,webhook_secret
     except Exception :
         raise
+
+
+
+async def create_webhook_config(developer_id:str|uuid.UUID,webhook_url:str,webhook_secret:str,db:AsyncSession) -> tuple[str,str] | None :
+    try:
+        developer_res = await db.execute(select(Developer).where(Developer.id ==  developer_id))
+        developer = developer_res.scalar_one_or_none()
+        if not developer:
+            raise DeveloperNotFoundError(f"Developer {str(developer_id)[:8]} not found")
+        developer.webhook_url = str(webhook_url)
+        developer.webhook_secret = webhook_secret
+        await db.commit()
+        logger.info(f"Developer : {str(developer_id)[:8]} | webhook configured:")
+        return developer.webhook_url,developer.webhook_secret
+    except Exception:
+        await db.rollback()
+        raise
+
+async def delete_webhook_config(
+    developer_id: str | uuid.UUID,
+    db: AsyncSession,
+) -> None:
+    developer_res = await db.execute(
+        select(Developer).where(Developer.id == developer_id)
+    )
+    developer = developer_res.scalar_one_or_none()
+
+    if developer is None:
+        raise DeveloperNotFoundError(f"Developer {developer_id} not found")
+
+    try:
+        developer.webhook_url = None
+        developer.webhook_secret = None
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        logger.exception(f"Failed to delete webhook config for developer {str(developer_id)[:8]}")
+        raise
+
+    logger.info(f"Developer : {str(developer_id)[:8]} | webhook config deleted")
+
+

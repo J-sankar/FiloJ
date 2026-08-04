@@ -1,13 +1,8 @@
 from redis.asyncio import Redis
 from shared.redis.cache_keys import (web_hook_config_key)
-from datetime import datetime, timezone
 
 
-
-def current_window() -> str:
-    """Returns the current hourly window identifier, e.g. '2026-07-04T15'."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
-                                               
+                                          
 class WebhookRepo:
     def __init__(self,redis:Redis ):
         self.redis = redis

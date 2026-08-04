@@ -3,6 +3,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from auth_service.routes.auth import router
 from auth_service.routes.api_keys import router as api_router
+from auth_service.routes.webhook import router as webhook_router
 from shared.logger import get_logger
 from shared.database import  engine, Base
 from contextlib import asynccontextmanager
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Auth Service",lifespan=lifespan)
 app.include_router(router, prefix="/api/auth")
 app.include_router(api_router, prefix="/api/key")
+app.include_router(webhook_router,prefix="/api/webhook")
 
 app.get("/health")
 def health():

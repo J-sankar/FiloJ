@@ -1,4 +1,4 @@
-from aio_pika import ExchangeType, connect_robust, Message
+from aio_pika import ExchangeType, connect_robust, Message,DeliveryMode
 from aio_pika.abc import AbstractQueue, AbstractExchange
 from shared.logger import get_logger
 import os
@@ -95,7 +95,13 @@ class BrokerClient:
         self.exchanges.clear()
         await self.setup_exchanges()
 
-    async def publish(self, exchange_name: str, routing_key: str, payload: dict, headers: dict | None = None):
+    async def publish(
+        self,
+        exchange_name: str,
+        routing_key: str,
+        payload: dict,
+        headers: dict | None = None,
+    ):
         """Publish messages to exchange specified"""
         if not self.channel:
             logger.error("BrokerClient not connected")
@@ -108,9 +114,11 @@ class BrokerClient:
         exchange = self.exchanges[exchange_name]
 
         await exchange.publish(
-            message=Message(body=message_body, content_type="application/json"),
+            message=Message(
+                body=message_body, content_type="application/json", headers=headers,
+                delivery_mode=DeliveryMode.PERSISTENT
+            ),
             routing_key=routing_key,
-            headers = headers
         )
 
     async def close(self):

@@ -17,7 +17,6 @@ from auth_service.utils.auth import (
     verify_password,
     create_access_token,
     generate_refresh_token,
-    decode_access_token,
     set_refresh_cookie,
     clear_refresh_cookie,
     REFRESH_EXPIRY_DAYS,

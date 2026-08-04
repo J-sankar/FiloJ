@@ -7,7 +7,7 @@ JITTER_FRACTION = 0.2
 
 
 def should_retry(attempt:int) -> bool :
-    return attempt > 3
+    return (attempt + 1) < MAX_DELIVERY_COUNT
 
 
 def compute_backoff(attempt:int) -> int:

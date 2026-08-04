@@ -1,12 +1,12 @@
 from fastapi import Request
 
-from gateway.core.security import decode_token,extract_bearer_headers
+from gateway.core.security import decode_token, extract_bearer_headers
 from gateway.handlers.base import ServiceHandler
 
 
 class AuthServiceHandler(ServiceHandler):
     def should_handle(self, path: str) -> bool:
-        return path == "api/key"
+        return path in ["api/key", "api/webhook"]
 
     async def get_context(self, request: Request) -> tuple[str, str]:
         bearer_token = extract_bearer_headers(request)

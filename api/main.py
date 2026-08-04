@@ -112,7 +112,7 @@ async def upload_file(
             db.add(file_metadata)
             db.add(new_job)
         await db.commit()
-        job_payload = {"job_id": str(new_job.id), "file_hash": file_key}
+        job_payload = {"job_id": str(new_job.id), "file_hash": file_key,"developer_id":developer.developer_id}
         await broker.publish(
             exchange_name="work.tasks",
             routing_key=f"task{filetype}.scan",
@@ -124,7 +124,7 @@ async def upload_file(
             "service": "api",
             "action": "file scheduled for scanning",
         }
-        await broker.publish("system.events", routing_key="event.api.file_uploaded", payload=new_log)
+        await broker.publish("system.events", routing_key="event.api.file_uploaded", payload=new_log,headers=None)
         logger.info(
             f"Scan job scheduled | job: {str(new_job.id)[:8]} | file: {filename}"
         )
@@ -136,4 +136,4 @@ async def upload_file(
     except Exception as e:
         await db.rollback()
         logger.error(f"ERROR: {str(e).lower()}")
-        raise HTTPException(status_code=500, detail=str(e).lower()[:20])
+        raise HTTPException(status_code=500, detail="Internal Server Error")

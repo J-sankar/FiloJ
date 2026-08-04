@@ -18,6 +18,7 @@ async def dispatch_to_webhook(
     file_id: UUID | str,
     status: str,
     result: dict[str, Any],
+    developer_id:str,
 ) -> None:
     if not event.strip():
         raise ValueError("event is required")
@@ -30,9 +31,10 @@ async def dispatch_to_webhook(
             "file_id": str(file_id),
             "status": status,
             "result": result,
+            "developer_id": developer_id
         }
         logger.debug(payload)
-        await broker.publish("webhook.retry", "event.job.*", payload=payload)
+        await broker.publish("webhook.retry", event, payload=payload)
     except (TypeError, ValueError) as exc:
         logger.exception("Invalid webhook payload")
         raise WebhookDispatchError("Failed to prepare webhook payload") from exc

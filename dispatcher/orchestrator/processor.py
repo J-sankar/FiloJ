@@ -1,29 +1,35 @@
-import httpx
-from redis.asyncio import Redis
-from shared.logger import get_logger
-from dispatcher.core.exceptions import WebhookException
-from dispatcher.orchestrator.dispatch_context import DispatchContext
-from dispatcher.utils.signer import sign_request_body
-from dispatcher.utils.headers import prepare_headers
-from dispatcher.utils.retry import (should_retry,build_retry_message,build_dead_letter_message)
-from aio_pika.abc import AbstractIncomingMessage
-
 import json
+
+from aio_pika.abc import AbstractIncomingMessage
+from shared.logger import get_logger
+
+from dispatcher.core.exceptions import DispatchError
+from dispatcher.orchestrator.delivery import attempt_delivery
+from dispatcher.orchestrator.dispatch_context import DispatchContext
+from dispatcher.utils.headers import prepare_headers
+from dispatcher.utils.retry import (
+    build_dead_letter_message,
+    build_retry_message,
+    should_retry,
+)
+from dispatcher.utils.signer import sign_request_body
 
 logger = get_logger(__name__)
 
 
-async def process_webhook(message:AbstractIncomingMessage,redis:Redis, ctx: DispatchContext):
-    try:
-        async with message.process(requeue=True):    
+async def process_webhook(message:AbstractIncomingMessage, ctx: DispatchContext):
+    async with message.process(requeue=True):
+        try:
             raw_body = message.body.decode()
             payload = json.loads(raw_body)
+            logger.debug(payload)
             developer_id:str = payload.get("developer_id",None)
             file_id:str = payload.get("file_id",None)
             status:str = payload.get("status","None")
             result:dict = payload.get("result",None)
             attempt:int = payload.get("attempt", 0)
             event:str = payload.get("event",None)
+            logger.info(f"Initiating Webhook dispatch: {message.message_id} | attempt: {attempt}")    
             if not developer_id:
                 raise ValueError("Developer id is required")
             config_resolver = ctx.config_resolver
@@ -39,42 +45,26 @@ async def process_webhook(message:AbstractIncomingMessage,redis:Redis, ctx: Disp
             raw_body = json.dumps(request_body,separators=(".", ":"))
             signature = sign_request_body(key=webhook_secret,body_str=raw_body)
             headers = prepare_headers(signature)
-            response = await http_client.post(url=webhook_url,content=raw_body,headers=headers)
-            if str(response.status_code).startswith("3"):
-                raise httpx.HTTPStatusError("No redirects allowed",response=response) 
-            response.raise_for_status()
-            logger.info(f"Webhook dispatched | Response :{response.status_code}")
-            return response
-    except httpx.HTTPStatusError as e:
-        status_code = str(e.response.status_code)
-        if status_code.startswith("5") or status_code == "429" :
-            if should_retry(attempt):
-                attempt_payload, header = build_retry_message(payload,attempt)
-                await broker.publish("webhook.retry",event,attempt_payload,header)
-                return 
+            await attempt_delivery(http_client,webhook_url,raw_body,headers)
+            logger.info("Webhook dispatched")
+        except DispatchError as e:
+            logger.error(f"DISPATCH ERROR: {str(e).lower()}, retrable: {e.retryable}")
+            if e.retryable and should_retry(attempt):
+                new_payload, headers = build_retry_message(payload, attempt)
+                await broker.publish("webhook.retry", event, new_payload, headers=headers)
             else:
-                dead_payload = build_dead_letter_message(payload,str(e).lower())
-                await broker.publish("dlx.exchange","webhook.dead",dead_payload)
-                return
-        dead_payload = build_dead_letter_message(payload,str(e).lower())
-        await broker.publish("dlx.exchange","webhook.dead",dead_payload)
-        return
-    except (httpx.ConnectError, httpx.ConnectTimeout) as e:
-        if should_retry(attempt):
-                attempt_payload, header = build_retry_message(payload,attempt)
-                await broker.publish("webhook.retry",event,attempt_payload,header)
-                return
-        else:
-                dead_payload = build_dead_letter_message(payload,str(e).lower())
-                await broker.publish("dlx.exchange","webhook.dead",dead_payload)
-                return
-    except WebhookException as e:
-        dead_payload = build_dead_letter_message(payload,str(e).lower())
-        await broker.publish("dlx.exchange","webhook.dead",dead_payload)
-        return
-    except Exception :
-         raise 
-         
-    
-    
+                logger.warning(
+                    f"Max webhook attempts reached for {message.message_id}; sending to dead letter"
+                )
+                dead_payload = build_dead_letter_message(payload, str(e))
+                await broker.publish("dlx.exchange", "webhook.dead", dead_payload)
+        except ValueError as e:
+            logger.exception(f"VALUE ERROR: {str(e.lower())}" ,exc_info=True)  # noqa: G202, RUF010
+            return
+        except Exception as e:
+            logger.exception(f"UNHANDLED EXCEPTION: {str(e).lower()}",exc_info=True)  # noqa: G202
+            raise 
+            
+        
+        
 

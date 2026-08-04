@@ -59,7 +59,9 @@ async def _publish_audit(
             "service": "scanner_worker",
             "routing_key": routing_key,
             "action": action,
+
         },
+        headers=None
     )
 
 
@@ -72,6 +74,7 @@ async def scan_file(
             data = json.loads(data_decoded)
             job_id: str = data["job_id"]
             file_key: str = data["file_hash"]
+            developer_id: str | None = data.get("developer_id")
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
             logger.error(f"Malformed message, discarding: {e}")
             await message.nack(requeue=False)
@@ -96,9 +99,12 @@ async def scan_file(
                 filemetadata = filemetadata_res.scalar_one_or_none()
                 if not filemetadata:
                     raise ValueError(f"FileMetaData not found for key: {file_key}")
+                if not developer_id:
+                    developer_id = str(filemetadata.developer_id)
                 await _publish_audit(
                     broker, job_id, "event.scanner.scan_start", "security scan started"
                 )
+                
                 logger.info(f"Job:{job_id[:8]} | Scan started")
                 with temp.SpooledTemporaryFile(max_size=MAX_CHUNK_SIZE) as spoolfile:
                     loop = asyncio.get_running_loop()
@@ -118,6 +124,10 @@ async def scan_file(
                         "event.scanner.scan_success",
                         f"security scan completed: status - {final_stat}",
                     )
+                    job.result_data = scan_res
+                    job.status = final_stat
+                    await db.commit()
+                    
                     if final_stat == "infected":
                         await s3.move_to_quarantine(file_key)
                         filemetadata.bucket = "quarantine"
@@ -129,11 +139,10 @@ async def scan_file(
                             job.file_id,
                             "infected",
                             scan_res,
+                            developer_id
                         )
+                        return
 
-                    job.result_data = scan_res
-                    job.status = final_stat
-                    await db.commit()
                     if (
                         ALLOWED_FILES.get(filemetadata.type, None) == "image"
                         and final_stat == "clean"
@@ -157,6 +166,7 @@ async def scan_file(
                             job.file_id,
                             "completed",
                             scan_res,
+                            developer_id
                         )
 
         except ConnectionError:
@@ -184,7 +194,7 @@ async def scan_file(
             ):  # Fix: was == 3 (misses counts > 3)
                 action = "moved to dlx exchange"
                 await dispatch_to_webhook(
-                    broker, "event.job.failed", job.file_id, "failed", scan_res
+                    broker, "event.job.failed", job.file_id, "failed", scan_res,developer_id
                 )
 
             else:
