@@ -32,7 +32,7 @@ async def get_api_key_developer(key_hash:str,db:AsyncSession)-> tuple[str,str] :
 
 async def get_webhook_config(developer_id:str | uuid.UUID,db:AsyncSession)->tuple[str,str] :
     try :
-        res = await db.execute(select(Developer).where(uuid.UUID(developer_id) == Developer.id))
+        res = await db.execute(select(Developer).where(developer_id == Developer.id))
         developer = res.scalar_one_or_none()
         if not developer:
             logger.warning("Developer details not found")

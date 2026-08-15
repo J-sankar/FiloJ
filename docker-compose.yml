@@ -1,6 +1,6 @@
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: filoj-rabbitmq:3.13
     build:
       context: .
       dockerfile: Dockerfile

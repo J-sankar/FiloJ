@@ -1,17 +1,20 @@
-from fastapi import FastAPI, UploadFile, File, Depends
-from fastapi.exceptions import HTTPException
-from contextlib import asynccontextmanager
-from shared.logger import get_logger
-from shared.database import get_session, engine, Base, AsyncSession
-from shared.models import Job, FileMetaData
-from shared.broker import BrokerClient
-from shared.storage import S3StorageAdapter
-from api.utils import allowed_file_type, get_file_type,validate_mime
-from sqlalchemy import select
 import hashlib
+from contextlib import asynccontextmanager
+from typing import Annotated
 
+import uuid
+import anyio
+from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi.exceptions import HTTPException
+from shared.broker import BrokerClient
+from shared.database import AsyncSession, Base, engine, get_session
+from shared.logger import get_logger
+from shared.models import FileMetaData, Job
+from shared.storage import S3StorageAdapter
+from sqlalchemy import select
 
-from api.dependencies import get_developer,DeveloperHeaders
+from api.dependencies import DeveloperHeaders, get_developer
+from api.utils import allowed_file_type, get_file_type, validate_mime
 
 logger = get_logger(__name__)
 storage = S3StorageAdapter()
@@ -40,16 +43,17 @@ async def health_check():
 
 
 async def iterator(filename: str):
-    with open(filename, "rb") as f:
-        while chunk := f.read(1024 * 1024):
+    async with await anyio.open_file(filename, "rb") as f:
+        while chunk := await f.read(1024 * 1024):
             yield chunk
 
 
 @app.post("/file/upload")
 async def upload_file(
-    developer    : DeveloperHeaders = Depends(get_developer) ,
-    uploaded_file: UploadFile = File(...), db: AsyncSession = Depends(get_session)
-):  
+    developer: Annotated[DeveloperHeaders, Depends(get_developer)],
+    uploaded_file: Annotated[UploadFile, File(...)],
+    db: Annotated[AsyncSession, Depends(get_session)],
+):
     
     filename = uploaded_file.filename
     
@@ -137,3 +141,20 @@ async def upload_file(
         await db.rollback()
         logger.error(f"ERROR: {str(e).lower()}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+
+
+# async def get_presigned_url(
+#         developer: Annotated[DeveloperHeaders, Depends(get_developer)],
+#         db: Annotated[AsyncSession, Depends(get_session)],
+#         job_id: str 
+# ):
+#     developer_id = developer.developer_id
+#     try:
+#         job_res = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id)))
+#         job = job_res.scalar_one_or_none()
+#         if not job:
+#             return HTTPException(status_code=401, detail="Job not found")
+#         if job.
+    

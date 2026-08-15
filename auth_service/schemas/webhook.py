@@ -18,6 +18,12 @@ class WebhookConfigResponse(BaseModel):
     webhook_secret: str
 
 
-class WebhookConfigDeleteResponse(BaseModel):
-    """Response Schema for Webhook Deletion"""
-    message: str = "webhook configuration deleted successfully"
+
+class WebhookConfigDeletionResponse(BaseModel):
+    """Response schema for deleting Webhook for the developer"""
+    success:bool = True
+    message:str = "Successfully deleted webhook configuration"
+
+class WebhookConfigDeletionRequest(BaseModel):
+    """Response schema for deleting Webhook for the developer"""
+    webhook_url:AnyHttpUrl  
