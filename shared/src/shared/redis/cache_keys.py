@@ -7,3 +7,6 @@ def api_key_usage_key(api_key: str, window: str) -> str:
 
 def storage_usage_key(developer_id: str) -> str:
     return f"developer:storage:{developer_id}"
+
+def web_hook_config_key(developer_id:str) -> str:
+    return f"webhook_cofig:{developer_id}"

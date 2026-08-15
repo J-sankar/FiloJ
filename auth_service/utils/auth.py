@@ -76,7 +76,7 @@ async def get_current_developer(
     x_developer_id: str | None = Header(default=None, alias="X-Developer-ID")
 ) -> uuid.UUID:
     """
-    Extracts the authenticated user's ID from the NGINX gateway header.
+    Extracts the authenticated user's ID from the api gateway header.
     """
     if not x_developer_id:
         raise HTTPException(

@@ -4,7 +4,7 @@ from auth_service.grpc.generated import auth_pb2_grpc
 from fastapi import HTTPException, status
 from shared.logger import get_logger
 
-from auth_service.grpc.generated import auth_pb2
+from gateway.grpc_clients.generated import auth_pb2
 
 
 logger = get_logger(__name__)

@@ -14,5 +14,6 @@ members = [
     "image_processor",
     "shared",
     "auth_service",
+    "dispatcher",
     "gateway"
 ]

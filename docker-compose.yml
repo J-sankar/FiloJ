@@ -1,17 +1,24 @@
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: filoj-rabbitmq:3.13
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: filoj-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
 
   minio:
     image: quay.io/minio/minio:latest
@@ -43,3 +50,4 @@ services:
   
 volumes:          # top level, same indentation as services
   clamav_db:
+  rabbitmq_data:

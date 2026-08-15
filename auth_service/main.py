@@ -1,12 +1,14 @@
-from fastapi import FastAPI,Request,status
-from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
-from auth_service.routes.auth import router
-from auth_service.routes.api_keys import router as api_router
-from shared.logger import get_logger
-from shared.database import  engine, Base
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+from shared.database import Base, engine
+from shared.logger import get_logger
+
+from auth_service.routes.api_keys import router as api_router
+from auth_service.routes.auth import router
+from auth_service.routes.webhook import router as webhook_router
 
 logger = get_logger(__name__)
 
@@ -24,6 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Auth Service",lifespan=lifespan)
 app.include_router(router, prefix="/api/auth")
 app.include_router(api_router, prefix="/api/key")
+app.include_router(webhook_router,prefix="/api/webhook")
 
 app.get("/health")
 def health():
@@ -33,7 +36,7 @@ def health():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request:Request, exc:HTTPException):
-    logger.warning(f"ERROR: {str(exc).lower()}",exc_info=True)
+    logger.warning(f"ERROR: {str(exc).lower()}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"details": exc.detail}
