@@ -2,215 +2,245 @@
 
 An event-driven distributed system to process file uploads asynchronously. This monorepo demonstrates a high-performance, decoupled architecture that separates ingestion, security scanning, image processing, and auditing into containerized microservices.
 
-## Overview
+## Architecture
 
-The system uses an API-first, headless approach. Incoming uploads are accepted quickly by the API gateway and heavy work (e.g. malware scanning, image processing) is handed off to asynchronous workers via RabbitMQ so user requests are never blocked.
+The current main branch contains these active pieces:
 
-### Core Components
+- `gateway/` — public HTTP gateway that routes requests to internal services
+- `auth_service/` — developer auth, refresh/logout, API-key management, and webhook configuration
+- `api/` — file upload service and job submission flow
+- `security_scanner/` — ClamAV-backed malware scanning worker
+- `image_processor/` — image processing worker
+- `logger_service/` — event/audit logging worker
+- `dispatcher/` — orchestration/dispatch logic
+- `shared/` — shared config, logging, database, messaging, and utilities
 
-- **API Gateway:** FastAPI (Python) — secure, async HTTP API for upload ingestion and job orchestration.
-- **Message Broker:** RabbitMQ — Topic exchange for routing jobs and events with at-least-once delivery semantics.
-- **Security Scanner Worker:** ClamAV (via clamd) — memory-to-memory malware scanning pipeline (no local disk I/O).
-- **Image Processor Worker:** PIL/piexif — extracts image metadata, handles EXIF orientation, processes images asynchronously.
-- **Logger Service:** Lightweight microservice that subscribes to `system.events` and persists a forensic audit trail to PostgreSQL.
-- **Storage:** MinIO — S3-compatible object storage for streaming file transfers.
-- **Database:** PostgreSQL (SQLAlchemy + asyncpg) — state-machine driven job records, file metadata, and centralized audit logs.
-- **Shared Library:** Unified configuration, database models, broker communication, storage adapters, and logging across all services.
+## Service layout and responsibilities
 
-## High-Level Flow
+### Gateway
 
-1. Client uploads a file to the API (`/file/upload`).
-2. FastAPI calculates a SHA-256 hash for deduplication and streams the file bytes to MinIO.
-3. API validates file type and creates DB records (`Job`, `FileMetaData`) with `status = pending`.
-4. API publishes job messages to RabbitMQ topic exchange (`system.events`).
-5. API immediately returns `202 Accepted` to the client.
-6. **Security Scanner Worker** consumes jobs, streams file from MinIO directly into the ClamAV daemon socket, updates DB state, and emits scan events.
-7. **Image Processor Worker** (if image) extracts metadata (EXIF), handles image rotation based on orientation, and updates file metadata.
-8. **Logger Service** subscribes to `system.events` with pattern `event.#` and persists an immutable audit trail of all lifecycle events.
-9. All services emit events to `system.events` for complete traceability.
+The gateway runs at `http://localhost:8000` by default and proxies requests like:
 
-## Key Technical Decisions
+- `/auth/...` → auth service
+- `/file/...` → file processing service
 
-- **Adapter Pattern for Storage:** Storage is pluggable via `S3StorageAdapter` — swap MinIO with AWS S3 or Azure Blob Storage without changing worker code.
-- **Memory-to-Memory Streaming:** Files flow directly from MinIO to ClamAV over network sockets; image bytes streamed to PIL — zero local disk I/O on workers.
-- **SHA-256 Content Deduplication:** Prevents redundant scanning and processing; provides deterministic artifact identifiers.
-- **Topic Exchange Routing:** RabbitMQ topic exchange (`system.events`) with pattern-based subscriptions (`event.#`) enables fine-grained event routing and simple extension for new workers.
-- **Async/Await Throughout:** FastAPI, asyncpg, aio_pika, PIL Image operations — entire pipeline is async for high concurrency.
-- **Database Portability:** SQLAlchemy ORM + asyncpg keeps DB access vendor-agnostic while preserving Postgres-native features (JSONB for result_data).
-- **Monorepo with Workspace Members:** Python workspace (via uv) keeps all services in one repo with shared dependencies and unified configuration.
-- **Centralized Audit Trail:** All lifecycle events published to message broker; logger service persists immutable records for compliance and debugging.
+The gateway also validates developer identity or API-key context and forwards auth headers.
 
-## Folder Layout (Monorepo)
+### Auth service
 
-```
-dunno-what/
-├── api/                           # FastAPI Gateway (upload ingestion & orchestration)
-│   ├── main.py                    # API endpoints (/health, /file/upload)
-│   └── utils.py                   # File type validation helpers
-├── security_scanner/              # ClamAV Security Scanner Worker
-│   ├── worker.py                  # Job consumer, ClamAV integration
-│   └── clamav.py                  # ClamAV daemon client
-├── image_processor/               # Image Processing Worker
-│   └── worker.py                  # Image metadata extraction, EXIF rotation
-├── logger_service/                # Audit Logger Service
-│   └── worker.py                  # Event consumer, audit trail persistence
-├── shared/                        # Shared library (workspace member)
-│   └── src/shared/
-│       ├── models.py              # SQLAlchemy models (Job, FileMetaData, AuditLog)
-│       ├── database.py            # AsyncSession, engine setup
-│       ├── broker.py              # RabbitMQ BrokerClient
-│       ├── storage.py             # S3StorageAdapter (MinIO)
-│       ├── logger.py              # Centralized logging
-│       └── config.py              # Environment config & constants
-├── database/
-│   └── migrations/                # Alembic SQL versions
-├── clamav/
-│   └── clamd.conf                 # ClamAV daemon configuration
-├── docker-compose.yml             # Infrastructure orchestration
-├── alembic.ini                    # Alembic migration config
-├── pyproject.toml                 # Root workspace (uv workspace members)
-└── README.md                      # This file
-```
+When you call the auth service directly on port `8001`, the routes are under `/api/auth` and `/api/key`, and the webhook routes live at `/api/webhook`.
 
-## Local Development
+Direct-service routes include:
 
-### 1. Setup Python Environment
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `POST /api/key`
+- `GET /api/webhook`
+- `POST /api/webhook`
+- `DELETE /api/webhook`
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
+Through the gateway on port `8000`, the same routes are exposed as:
 
-### 2. Install Dependencies
+- `POST /auth/api/auth/register`
+- `POST /auth/api/auth/login`
+- `POST /auth/api/auth/refresh`
+- `POST /auth/api/auth/logout`
+- `POST /auth/api/key`
+- `GET /auth/api/webhook`
+- `POST /auth/api/webhook`
+- `DELETE /auth/api/webhook`
 
-Using **uv** (recommended) or pip:
+Developer headers are expected in the auth flow, including:
 
-```bash
-# With uv (fast workspace resolver)
-uv sync
+- `X-Developer-ID` for direct internal requests to the auth service
+- `Authorization: Bearer <token>` for gateway-mediated requests
 
-# Or with pip
-pip install -e ./shared -e ./api -e ./security_scanner -e ./image_processor -e ./logger_service
-```
+### File service
 
-### 3. Launch Infrastructure (RabbitMQ, MinIO, PostgreSQL, ClamAV)
+The file API service is the upload-facing service.
+
+Direct-service routes include:
+
+- `GET /health`
+- `POST /file/upload`
+
+Through the gateway, the same service is reached as:
+
+- `GET /file/health`
+- `POST /file/file/upload`
+
+Upload flow in the current code:
+
+1. Validates filename and MIME type
+2. Computes a SHA-256 hash for deduplication
+3. Stores the file in MinIO-backed storage
+4. Creates a DB record in the shared model layer
+5. Publishes a scan task to RabbitMQ
+6. Emits an `event.api.file_uploaded` audit event
+
+## Current local startup commands
+
+The repo includes a `Makefile` with the active service commands used by this branch:
 
 ```bash
-docker compose up -d
+make gateway
+make auth-api
+make file-api
+make grpc-auth
+make sec-worker
+make img-worker
+make log-worker
+make docker-up
+make stop
 ```
 
-Verify services are healthy:
+### Direct service commands
+
 ```bash
-docker compose ps
+uv run uvicorn gateway.main:app --reload
+uv run uvicorn auth_service.main:app --reload --port 8001
+uv run uvicorn api.main:app --reload --port 8002
+uv run python -m auth_service.grpc.grpc_server
+uv run python -m security_scanner.worker
+uv run python -m image_processor.worker
+uv run python -m logger_service.worker
 ```
 
-**Service Endpoints:**
-- RabbitMQ Management: `http://localhost:15672` (guest/guest)
-- MinIO Console: `http://localhost:9001` (admin/password123)
+## Infrastructure
+
+The application expects the following services to be running locally for development:
+
+- RabbitMQ
+- MinIO
+- ClamAV
+
+The root `docker-compose.yml` currently starts:
+
+```bash
+docker compose up
+```
+
+Service endpoints from the current Compose file:
+
+- RabbitMQ: `amqp://guest:guest@localhost:5672`
+- RabbitMQ management: `http://localhost:15672`
+- MinIO: `http://localhost:9000`
+- MinIO console: `http://localhost:9001`
 - ClamAV: `localhost:3310`
-- PostgreSQL: `localhost:5432`
 
-### 4. Apply Database Migrations
+## Python workspace setup
 
-```bash
-alembic upgrade head
-```
-
-### 5. Run Services (in separate terminals)
-
-**API Gateway:**
-```bash
-cd api
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Security Scanner Worker:**
-```bash
-cd security_scanner
-python -m worker
-```
-
-**Image Processor Worker:**
-```bash
-cd image_processor
-python -m worker
-```
-
-**Logger Service:**
-```bash
-cd logger_service
-python -m worker
-```
-
-### 6. Test Upload
+The root project uses a uv workspace. Install dependencies with:
 
 ```bash
-curl -X POST http://localhost:8000/file/upload \
-  -F "uploaded_file=@/path/to/test.jpg"
+uv sync
 ```
 
-Expected response: `202 Accepted` with job details.
+The workspace members are defined in `pyproject.toml` and include:
 
-## Configuration
+- `api`
+- `security_scanner`
+- `logger_service`
+- `image_processor`
+- `shared`
+- `auth_service`
+- `dispatcher`
+- `gateway`
 
-All configuration is driven by environment variables for 12-factor compatibility. See `shared/src/shared/config.py` for defaults.
+## Environment variables
 
-### Core Environment Variables
+The app reads settings from environment variables and `.env` files.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://postgres:postgres@localhost:5432/filoj` |
-| `DATABASE_SCHEMA` | PostgreSQL schema name | `public` |
-| `MINIO_ENDPOINT` | MinIO server URL | `http://localhost:9000` |
-| `MINIO_ACCESS_KEY` | MinIO access key | `admin` |
-| `MINIO_SECRET_KEY` | MinIO secret key | `password123` |
-| `RABBITMQ_URL` | RabbitMQ AMQP connection | `amqp://guest:guest@localhost/` |
-| `CLAMD_HOST` | ClamAV daemon host | `localhost` |
-| `CLAMD_PORT` | ClamAV daemon port | `3310` |
-| `ALLOWED_FILES` | Comma-separated allowed file extensions | `jpg,jpeg,png,pdf,docx` |
-| `LOG_LEVEL` | Logging level | `INFO` |
-
-### Local Development `.env` Example
+Key settings currently used by the gateway and auth service include:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/filoj
-DATABASE_SCHEMA=public
-MINIO_ENDPOINT=http://localhost:9000
-MINIO_ACCESS_KEY=admin
-MINIO_SECRET_KEY=password123
-RABBITMQ_URL=amqp://guest:guest@localhost/
-CLAMD_HOST=localhost
-CLAMD_PORT=3310
-ALLOWED_FILES=jpg,jpeg,png,gif,pdf,docx,txt
-LOG_LEVEL=DEBUG
+JWT_SECRET=your-secret-key
+JWT_ALGORITHM=HS256
+FILE_SERVICE_URL=http://localhost:8002
+AUTH_SERVICE_URL=http://localhost:8001
+REDIS_HOST=localhost
+REDIS_PORT=6379
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/your_db
+INTERNAL_GATEWAY_SECRET=your-internal-secret
 ```
 
-Load environment variables before running services:
+The shared database layer also uses `DATABASE_URL` for async SQLAlchemy connections.
+
+## Example login flow
+
+Register or log in directly against the auth service:
+
 ```bash
-set -a && source .env && set +a
+curl -X POST "http://localhost:8001/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your-password"
+  }'
 ```
 
-## Operational Notes
+Through the gateway, use the proxied route instead:
 
-- **Worker Design:** Favors streaming to minimize memory footprint — files are processed as streams rather than loading entire payloads into memory.
-- **Idempotency:** Message processing is idempotent where possible; lifecycle transitions are validated in the database to protect against duplicate deliveries.
-- **Event Observability:** All meaningful state transitions are emitted to the `system.events` exchange for observability, traceability, and audit.
-- **Job Status Machine:** Job transitions follow a strict state machine: `pending` → `scanning` → `processing` → `completed|failed|quarantined`.
-- **Retry Logic:** Workers implement exponential backoff and max delivery count to handle transient failures gracefully.
+```bash
+curl -X POST "http://localhost:8000/auth/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your-password"
+  }'
+```
 
-## Highlights
+The response includes:
 
-- **Microservices Architecture:** Decoupled, independently deployable services communicate via async message queue.
-- **Cloud-Native Design:** Container-first deployment with Docker Compose for local dev and scalable to Kubernetes.
-- **Production Patterns:** Circuit breakers, graceful degradation, audit logging, and comprehensive error handling.
-- **Database Migrations:** Alembic manages schema evolution with versioned, reversible migrations.
-- **End-to-End Tracing:** Job IDs propagate across API, broker, and workers for complete request traceability.
-- **Storage Abstraction:** Pluggable storage adapters enable multi-cloud deployments (MinIO, AWS S3, Azure Blob).
+- `access_token`
+- `developer_id`
+- `name`
+- `plan`
 
-## Contributing
+## Example webhook deletion
 
-Contributions are welcome. Please open issues or PRs describing changes and include tests for modified components.
+Directly against the auth service, delete the webhook with the developer id header:
 
-## License
+```bash
+curl -X DELETE "http://localhost:8001/api/webhook" \
+  -H "X-Developer-ID: 11111111-2222-3333-4444-555555666666"
+```
 
-This repository contains example code. Add your preferred license file if you intend to reuse it in production.
+Through the gateway, use the gateway path and pass the bearer token instead:
+
+```bash
+curl -X DELETE "http://localhost:8000/auth/api/webhook" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## Notes
+
+- This main branch is a monorepo rather than a single app.
+- The gateway is the main front door for external traffic.
+- The auth and file services are separate FastAPI apps with independent entry points.
+- Messaging and file processing are event-driven and rely on the shared broker and storage abstractions.
+
+## Repository structure
+
+```text
+dunno-what/
+├── api/
+├── auth_service/
+├── database/
+├── dispatcher/
+├── gateway/
+├── image_processor/
+├── logger_service/
+├── security_scanner/
+├── shared/
+├── clamav/
+├── docker-compose.yml
+├── Dockerfile
+├── Makefile
+├── alembic.ini
+├── pyproject.toml
+├── README.md
+
+```
