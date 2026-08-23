@@ -97,6 +97,7 @@ async def scan_file(
                     )
                 )
                 filemetadata = filemetadata_res.scalar_one_or_none()
+
                 if not filemetadata:
                     raise ValueError(f"FileMetaData not found for key: {file_key}")
                 if not developer_id:
@@ -159,12 +160,15 @@ async def scan_file(
                         )
                     else:
                         job.status = "completed"
+                        await s3.move_to_processed(file_key)
+                        filemetadata.bucket = "processed"
                         await db.commit()
                         await dispatch_to_webhook(
                             broker,
                             "event.job.completed",
                             job.file_id,
                             "completed",
+                            
                             scan_res,
                             developer_id
                         )

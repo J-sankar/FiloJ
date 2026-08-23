@@ -113,7 +113,30 @@ class S3StorageAdapter:
             except Exception as e:
                 logger.error(f"ERROR: {str(e).lower()}")
                 raise e
-
+            
+    async def move_to_processed(self, file_key: str) -> None:
+            """Move infected files to processed bucket"""
+            async with self.session.client(
+                "s3",
+                region_name=self.region,
+                endpoint_url=self.endpoint_url,
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            ) as s3:
+                try:
+                    # Copy to quarantine
+                    await s3.copy_object(
+                        Bucket=self.processed_bucket,
+                        CopySource={"Bucket": self.upload_bucket, "Key": file_key},
+                        Key=file_key,
+                    )
+                    await s3.head_object(Bucket=self.processed_bucket, Key=file_key)
+                    # Delete from uploads
+                    await s3.delete_object(Bucket=self.upload_bucket, Key=file_key)
+                    logger.info(f"File quarantined: {file_key[:8]}")
+                except Exception as e:
+                    logger.error(f"ERROR: {str(e).lower()}")
+                    raise e
                 
     async def get_file_stream(self, file_key:str,chunk_size : int = 50 * 1024 * 1024) ->AsyncGenerator[bytes, any] :
         async with self.session.client(

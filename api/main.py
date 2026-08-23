@@ -1,8 +1,8 @@
 import hashlib
+import uuid
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-import uuid
 import anyio
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import HTTPException
@@ -48,7 +48,7 @@ async def iterator(filename: str):
             yield chunk
 
 
-@app.post("/file/upload")
+@app.post("/upload")
 async def upload_file(
     developer: Annotated[DeveloperHeaders, Depends(get_developer)],
     uploaded_file: Annotated[UploadFile, File(...)],
@@ -110,7 +110,8 @@ async def upload_file(
             )   
  
             new_job = Job(
-                file=file_metadata  
+                file=file_metadata, 
+                developer_id = uuid.UUID(developer.developer_id)
             )
             
             db.add(file_metadata)
@@ -127,6 +128,7 @@ async def upload_file(
             "routing_key": f"task{filetype}.scan",
             "service": "api",
             "action": "file scheduled for scanning",
+            "file_id": str(file_metadata.id)
         }
         await broker.publish("system.events", routing_key="event.api.file_uploaded", payload=new_log,headers=None)
         logger.info(
@@ -135,7 +137,7 @@ async def upload_file(
         return {
             "message": "File uploaded and scheduled for processing",
             "job_id": str(new_job.id),
-            "upload_id": file_key,
+            "file_id": str(file_metadata.id) 
         }
     except Exception as e:
         await db.rollback()
@@ -144,17 +146,19 @@ async def upload_file(
 
 
 
-
+# @app.get("/:{file_id}")
 # async def get_presigned_url(
 #         developer: Annotated[DeveloperHeaders, Depends(get_developer)],
 #         db: Annotated[AsyncSession, Depends(get_session)],
-#         job_id: str 
+#         file_id: str 
 # ):
 #     developer_id = developer.developer_id
 #     try:
-#         job_res = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id)))
-#         job = job_res.scalar_one_or_none()
-#         if not job:
-#             return HTTPException(status_code=401, detail="Job not found")
-#         if job.
-    
+#         file_res = await db.execute(select(FileMetaData).where(FileMetaData.id == uuid.UUID(file_id)))
+#         file = file_res.scalar_one_or_none()
+#         if not file:
+#             raise HTTPException(status_code=401, detail="File not found")
+#         if file.bucket  not in ["uploads", "processed"]: 
+#             logger.info(f"job: {(file_id)[:8]} |File unavailable for download | status:{file.}")
+#             raise HTTPException(402, "Action not allowed, check file status in dashboard")
+#         file_key = job.file.upload_id

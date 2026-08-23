@@ -78,7 +78,7 @@ async def register(
     await db.refresh(developer)
 
     logger.info(f"New developer registered: {developer.email}")
-
+    await db.commit()
     return await issue_tokens(developer, db, response)
 
 
